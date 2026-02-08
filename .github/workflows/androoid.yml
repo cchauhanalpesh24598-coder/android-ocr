@@ -1,0 +1,56 @@
+name: Android OCR Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        # SDK components जो इस प्रोजेक्ट को चाहिए
+        api-level: 33
+        build-tools-version: '33.0.2'
+        ndk-version: '25.1.8937393'
+        cmake-version: '3.22.1'
+        targets: android-33
+        
+    - name: Add Tesseract OCR dependencies (अगर ज़रूरी हो)
+      run: |
+        # Tesseract OCR के लिए additional setup
+        sudo apt-get update
+        sudo apt-get install -y libleptonica-dev libtesseract-dev tesseract-ocr-eng
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build APK
+      run: |
+        ./gradlew assembleDebug
+        # या test build के लिए:
+        # ./gradlew assembleDebug --stacktrace
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-ocr-apk
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
+        retention-days: 7
